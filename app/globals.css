@@ -532,3 +532,63 @@ button:disabled {
   background: #eef1f8;
   border-radius: 6px;
 }
+
+.notice-success {
+  background: #eaf7ee;
+  border: 1px solid #2e8b57;
+  color: #2e8b57;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+.apikey-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+}
+
+.apikey-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+.apikey-input {
+  flex: 1;
+  min-width: 160px;
+  padding: 7px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: inherit;
+}
+
+.apikey-toggle {
+  background: #fff;
+  color: var(--gray-text);
+  border: 1px solid var(--border);
+  padding: 7px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.apikey-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--navy);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.apikey-link:hover {
+  text-decoration: underline;
+}

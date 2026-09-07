@@ -47,6 +47,8 @@ export default function Home() {
   const [attachedFiles, setAttachedFiles] = useState([]); // [{ id, name, text, status: 'uploading'|'done'|'error' }]
   const [isDragging, setIsDragging] = useState(false);
   const [me, setMe] = useState(null);
+  const [apiKey, setApiKey] = useState("");
+  const [showApiKey, setShowApiKey] = useState(false);
   const fileInputRef = useRef(null);
   const logEndRef = useRef(null);
 
@@ -56,6 +58,19 @@ export default function Home() {
       .then((data) => setMe(data))
       .catch(() => setMe(null));
   }, []);
+
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? window.localStorage.getItem("gemini_api_key") : null;
+    if (saved) setApiKey(saved);
+  }, []);
+
+  function handleApiKeyChange(value) {
+    setApiKey(value);
+    if (typeof window !== "undefined") {
+      if (value) window.localStorage.setItem("gemini_api_key", value);
+      else window.localStorage.removeItem("gemini_api_key");
+    }
+  }
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -187,7 +202,7 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: combined }),
+        body: JSON.stringify({ text: combined, apiKey }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "分析に失敗しました。");
@@ -294,6 +309,7 @@ export default function Home() {
           chartPreference: answers.chartPreference,
           includeInsight: answers.includeInsight,
           slideCountTarget: answers.slideCountTarget,
+          apiKey,
         }),
       });
       if (!res.ok) {
@@ -357,10 +373,35 @@ export default function Home() {
         </span>
         <div className="userbar-actions">
           {me && me.role === "admin" && <a href="/admin">管理画面</a>}
+          <a href="/account">パスワード変更</a>
           <button type="button" className="userbar-logout" onClick={handleLogout}>
             ログアウト
           </button>
         </div>
+      </div>
+
+      <div className="apikey-bar">
+        <label htmlFor="apiKeyInput" className="apikey-label">Gemini APIキー（任意）</label>
+        <input
+          id="apiKeyInput"
+          type={showApiKey ? "text" : "password"}
+          className="apikey-input"
+          value={apiKey}
+          onChange={(e) => handleApiKeyChange(e.target.value)}
+          placeholder="未入力の場合はサーバー側の共通キーを使用します"
+          autoComplete="off"
+        />
+        <button type="button" className="apikey-toggle" onClick={() => setShowApiKey((v) => !v)}>
+          {showApiKey ? "隠す" : "表示"}
+        </button>
+        <a
+          className="apikey-link"
+          href="https://aistudio.google.com/apikey"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          APIキーを取得 ↗
+        </a>
       </div>
 
       {error && <div className="error">{error}</div>}

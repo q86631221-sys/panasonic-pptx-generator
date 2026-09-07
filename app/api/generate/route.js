@@ -26,10 +26,10 @@ async function logUsage(userId, tokens) {
   }
 }
 
-async function structureContent({ text, audience, chartPreference, includeInsight, slideCountTarget }) {
-  const apiKey = process.env.GEMINI_API_KEY;
+async function structureContent({ text, audience, chartPreference, includeInsight, slideCountTarget, apiKey: userApiKey }) {
+  const apiKey = userApiKey || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("サーバーにGemini APIキーが設定されていません。管理者にお問い合わせください。");
+    throw new Error("Gemini APIキーが利用できません。画面上部の入力欄にご自身のAPIキーを入力するか、管理者にお問い合わせください。");
   }
 
   const systemPrompt = buildSystemPrompt({ audience, chartPreference, includeInsight, slideCountTarget });
@@ -120,6 +120,7 @@ export async function POST(req) {
       chartPreference = "auto",
       includeInsight = null,
       slideCountTarget = null,
+      apiKey = "",
     } = body;
 
     if (!text || !text.trim()) {
@@ -132,6 +133,7 @@ export async function POST(req) {
       chartPreference,
       includeInsight,
       slideCountTarget,
+      apiKey,
     });
     await logUsage(session.userId, totalTokens);
 

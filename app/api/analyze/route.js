@@ -47,14 +47,14 @@ export async function POST(req) {
     }
 
     const body = await req.json();
-    const { text } = body;
+    const { text, apiKey: userApiKey } = body;
     if (!text || !text.trim()) {
       return new Response(JSON.stringify({ error: "本文テキストを入力してください。" }), { status: 400 });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = userApiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: "サーバーにGemini APIキーが設定されていません。管理者にお問い合わせください。" }), { status: 500 });
+      return new Response(JSON.stringify({ error: "Gemini APIキーが利用できません。画面上部の入力欄にご自身のAPIキーを入力するか、管理者にお問い合わせください。" }), { status: 400 });
     }
 
     const systemPrompt = buildAnalysisPrompt();
