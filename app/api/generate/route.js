@@ -27,6 +27,7 @@ async function logUsage(userId, tokens) {
 }
 
 async function structureContent({ text, audience, chartPreference, includeInsight, slideCountTarget, apiKey: userApiKey }) {
+  const usedServerKey = !userApiKey;
   const apiKey = userApiKey || process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("Gemini APIキーが利用できません。画面上部の入力欄にご自身のAPIキーを入力するか、管理者にお問い合わせください。");
@@ -69,7 +70,7 @@ async function structureContent({ text, audience, chartPreference, includeInsigh
   } catch (e) {
     throw new Error("構造化結果のJSON解析に失敗しました: " + e.message);
   }
-  return { structured, totalTokens };
+  return { structured, totalTokens, usedServerKey };
 }
 
 function buildPptx({ structured, department, dateStr, includeIuo }) {
@@ -128,7 +129,7 @@ export async function POST(req) {
       return new Response(JSON.stringify({ error: "本文テキストを入力してください。" }), { status: 400 });
     }
 
-    const { structured: structuredRaw, totalTokens } = await structureContent({
+    const { structured: structuredRaw, totalTokens, usedServerKey } = await structureContent({
       text,
       audience,
       chartPreference,
@@ -136,7 +137,9 @@ export async function POST(req) {
       slideCountTarget,
       apiKey,
     });
-    await logUsage(session.userId, totalTokens);
+    if (usedServerKey) {
+      await logUsage(session.userId, totalTokens);
+    }
 
     const structured = normalizeStructured(structuredRaw);
     const pres = buildPptx({ structured, department, dateStr, includeIuo: !!includeIuo });

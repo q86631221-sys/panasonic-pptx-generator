@@ -53,6 +53,7 @@ export async function POST(req) {
     }
 
     const apiKey = userApiKey || process.env.GEMINI_API_KEY;
+    const usedServerKey = !userApiKey;
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "Gemini APIキーが利用できません。画面上部の入力欄にご自身のAPIキーを入力するか、管理者にお問い合わせください。" }), { status: 400 });
     }
@@ -88,7 +89,9 @@ export async function POST(req) {
     const totalTokens = (data.usageMetadata && data.usageMetadata.totalTokenCount) || 0;
     if (!rawText) throw new Error("Gemini APIから解析結果を取得できませんでした。");
 
-    await logUsage(session.userId, totalTokens);
+    if (usedServerKey) {
+      await logUsage(session.userId, totalTokens);
+    }
 
     let parsed;
     try {
