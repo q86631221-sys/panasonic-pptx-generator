@@ -592,3 +592,16 @@ button:disabled {
 .apikey-link:hover {
   text-decoration: underline;
 }
+
+.admin-reset-notice {
+  display: block;
+  width: 100%;
+  font-size: 11px;
+  color: var(--red);
+  margin-top: 4px;
+}
+
+.admin-btn-secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

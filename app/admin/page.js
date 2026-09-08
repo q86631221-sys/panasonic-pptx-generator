@@ -41,6 +41,7 @@ function UsersPanel() {
   const [error, setError] = useState("");
   const [form, setForm] = useState({ email: "", password: "", department: "", role: "general" });
   const [creating, setCreating] = useState(false);
+  const [pendingReset, setPendingReset] = useState({});
 
   async function loadDepartments() {
     try {
@@ -108,10 +109,15 @@ function UsersPanel() {
     }
   }
 
+  const DEFAULT_RESET_PASSWORD = "PASD1234";
+
   function handleResetPassword(id) {
-    const newPw = window.prompt("新しいパスワードを入力してください（6文字以上）");
-    if (!newPw) return;
-    handleUpdate(id, { password: newPw });
+    setPendingReset((prev) => ({ ...prev, [id]: true }));
+  }
+
+  async function handleApplyReset(id) {
+    await handleUpdate(id, { password: DEFAULT_RESET_PASSWORD });
+    setPendingReset((prev) => ({ ...prev, [id]: false }));
   }
 
   async function handleDelete(id) {
@@ -201,9 +207,20 @@ function UsersPanel() {
                   <button type="button" className="admin-btn-secondary" onClick={() => handleResetPassword(u.id)}>
                     PWリセット
                   </button>
+                  <button
+                    type="button"
+                    className="admin-btn-secondary"
+                    disabled={!pendingReset[u.id]}
+                    onClick={() => handleApplyReset(u.id)}
+                  >
+                    反映
+                  </button>
                   <button type="button" className="admin-btn-danger" onClick={() => handleDelete(u.id)}>
                     削除
                   </button>
+                  {pendingReset[u.id] && (
+                    <span className="admin-reset-notice">「{DEFAULT_RESET_PASSWORD}」に変更予定。反映ボタンで確定します。</span>
+                  )}
                 </td>
               </tr>
             ))}
