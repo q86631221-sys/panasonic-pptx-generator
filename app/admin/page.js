@@ -38,6 +38,7 @@ function UsersPanel() {
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deptLoaded, setDeptLoaded] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ email: "", password: "", department: "", role: "general" });
   const [creating, setCreating] = useState(false);
@@ -50,6 +51,8 @@ function UsersPanel() {
       if (res.ok) setDepartments(data.departments);
     } catch {
       // 部署一覧の取得失敗はユーザー管理自体をブロックしない
+    } finally {
+      setDeptLoaded(true);
     }
   }
 
@@ -170,7 +173,7 @@ function UsersPanel() {
         </div>
       </form>
 
-      {loading ? (
+      {loading || !deptLoaded ? (
         <p>読み込み中…</p>
       ) : (
         <table className="admin-table">
@@ -188,6 +191,7 @@ function UsersPanel() {
                 <td>{u.email}</td>
                 <td>
                   <select
+                    key={`dept-${u.id}-${departments.length}`}
                     defaultValue={u.department}
                     onChange={(e) => handleUpdate(u.id, { department: e.target.value })}
                   >
