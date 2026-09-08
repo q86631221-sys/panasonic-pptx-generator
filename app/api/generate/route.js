@@ -45,6 +45,7 @@ async function structureContent({ text, audience, chartPreference, includeInsigh
         generationConfig: {
           responseMimeType: "application/json",
           temperature: 0.4,
+          thinkingConfig: { thinkingLevel: "low" },
         },
       }),
     }

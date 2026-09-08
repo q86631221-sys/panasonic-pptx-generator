@@ -67,7 +67,11 @@ export async function POST(req) {
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: "user", parts: [{ text }] }],
-          generationConfig: { responseMimeType: "application/json", temperature: 0.3 },
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.3,
+            thinkingConfig: { thinkingLevel: "low" },
+          },
         }),
       }
     );
