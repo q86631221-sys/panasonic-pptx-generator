@@ -18,9 +18,14 @@ export default function AdminPage() {
         <button className={tab === "usage" ? "active" : ""} onClick={() => setTab("usage")}>
           利用状況・部署サマリ
         </button>
+        <button className={tab === "departments" ? "active" : ""} onClick={() => setTab("departments")}>
+          部署マスタ
+        </button>
       </div>
 
-      {tab === "users" ? <UsersPanel /> : <UsagePanel />}
+      {tab === "users" && <UsersPanel />}
+      {tab === "usage" && <UsagePanel />}
+      {tab === "departments" && <DepartmentsPanel />}
 
       <p className="footer-note">
         <a href="/">← パワポ生成画面に戻る</a>
@@ -31,10 +36,21 @@ export default function AdminPage() {
 
 function UsersPanel() {
   const [users, setUsers] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ email: "", password: "", department: "", role: "general" });
   const [creating, setCreating] = useState(false);
+
+  async function loadDepartments() {
+    try {
+      const res = await fetch("/api/admin/departments");
+      const data = await res.json();
+      if (res.ok) setDepartments(data.departments);
+    } catch {
+      // 部署一覧の取得失敗はユーザー管理自体をブロックしない
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -52,6 +68,7 @@ function UsersPanel() {
   }
   useEffect(() => {
     load();
+    loadDepartments();
   }, []);
 
   async function handleCreate(e) {
@@ -131,12 +148,12 @@ function UsersPanel() {
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
           />
-          <input
-            type="text"
-            placeholder="部署"
-            value={form.department}
-            onChange={(e) => setForm({ ...form, department: e.target.value })}
-          />
+          <select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
+            <option value="">部署を選択</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.name}>{d.name}</option>
+            ))}
+          </select>
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
             <option value="general">一般</option>
             <option value="admin">管理者</option>
@@ -164,13 +181,15 @@ function UsersPanel() {
               <tr key={u.id}>
                 <td>{u.email}</td>
                 <td>
-                  <input
-                    type="text"
+                  <select
                     defaultValue={u.department}
-                    onBlur={(e) => {
-                      if (e.target.value !== u.department) handleUpdate(u.id, { department: e.target.value });
-                    }}
-                  />
+                    onChange={(e) => handleUpdate(u.id, { department: e.target.value })}
+                  >
+                    <option value="">未設定</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.name}>{d.name}</option>
+                    ))}
+                  </select>
                 </td>
                 <td>
                   <select defaultValue={u.role} onChange={(e) => handleUpdate(u.id, { role: e.target.value })}>
@@ -296,6 +315,135 @@ function UsagePanel() {
             </table>
           </>
         )
+      )}
+    </div>
+  );
+}
+
+function DepartmentsPanel() {
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [newName, setNewName] = useState("");
+  const [creating, setCreating] = useState(false);
+
+  async function load() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/departments");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setDepartments(data.departments);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function handleCreate(e) {
+    e.preventDefault();
+    if (!newName.trim()) return;
+    setCreating(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/departments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setNewName("");
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleRename(id, oldName) {
+    const newVal = window.prompt("新しい部署名を入力してください", oldName);
+    if (!newVal || newVal.trim() === oldName) return;
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/departments/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newVal.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleDelete(id, name) {
+    if (!window.confirm(`部署「${name}」を削除しますか？既にこの部署名が設定されているユーザーの表記はそのまま残ります。`)) return;
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/departments/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <div className="admin-panel">
+      {error && <div className="error">{error}</div>}
+
+      <form className="admin-create-form" onSubmit={handleCreate}>
+        <h3>部署を追加</h3>
+        <div className="admin-form-row">
+          <input
+            type="text"
+            placeholder="部署名（例：営業企画部）"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            required
+          />
+          <button type="submit" disabled={creating}>
+            追加
+          </button>
+        </div>
+      </form>
+
+      {loading ? (
+        <p>読み込み中…</p>
+      ) : (
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>部署名</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {departments.map((d) => (
+              <tr key={d.id}>
+                <td>{d.name}</td>
+                <td className="admin-actions">
+                  <button type="button" className="admin-btn-secondary" onClick={() => handleRename(d.id, d.name)}>
+                    名称変更
+                  </button>
+                  <button type="button" className="admin-btn-danger" onClick={() => handleDelete(d.id, d.name)}>
+                    削除
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
