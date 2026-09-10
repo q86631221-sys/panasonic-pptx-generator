@@ -73,6 +73,30 @@ async function structureContent({ text, audience, chartPreference, includeInsigh
   return { structured, totalTokens, usedServerKey };
 }
 
+async function saveGeneratedFile(userId, title, summary, buffer) {
+  try {
+    await ensureSchema();
+    await sql`
+      INSERT INTO generated_files (user_id, title, summary, file_data, file_size)
+      VALUES (${userId}, ${title}, ${summary}, ${buffer}, ${buffer.length})
+    `;
+  } catch (err) {
+    // 履歴保存の失敗で本体機能（ダウンロード）を止めない
+    console.error("save generated file failed", err);
+  }
+}
+
+function sanitizeFilename(name) {
+  const cleaned = (name || "").trim().replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim();
+  return cleaned || "資料";
+}
+
+function buildContentDisposition(filenameBase) {
+  const asciiFallback = "generated.pptx";
+  const encoded = encodeURIComponent(`${filenameBase}.pptx`);
+  return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`;
+}
+
 function buildPptx({ structured, department, dateStr, includeIuo }) {
   const pres = new pptxgen();
   pres.layout = P.LAYOUT;
@@ -115,6 +139,7 @@ export async function POST(req) {
     const body = await req.json();
     const {
       text,
+      originalQuestion = "",
       department = "",
       dateStr = "",
       audience = "internal",
@@ -146,11 +171,15 @@ export async function POST(req) {
 
     const buffer = await pres.write({ outputType: "nodebuffer" });
 
+    const filenameBase = sanitizeFilename(structured.coverTitle);
+    const summaryText = (originalQuestion || text || "").slice(0, 2000);
+    await saveGeneratedFile(session.userId, filenameBase, summaryText, buffer);
+
     return new Response(buffer, {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        "Content-Disposition": `attachment; filename="generated.pptx"`,
+        "Content-Disposition": buildContentDisposition(filenameBase),
       },
     });
   } catch (err) {

@@ -605,3 +605,48 @@ button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.admin-user-link {
+  color: var(--navy);
+  font-weight: 700;
+  text-decoration: none;
+}
+.admin-user-link:hover {
+  text-decoration: underline;
+}
+
+.file-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-history-item {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: #fafbfd;
+}
+
+.file-history-title {
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+}
+.file-history-title:hover {
+  text-decoration: underline;
+}
+
+.file-history-meta {
+  font-size: 11px;
+  color: var(--gray-text);
+  margin: 4px 0 8px;
+}
+
+.file-history-summary {
+  font-size: 13px;
+  color: #333;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}

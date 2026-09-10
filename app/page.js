@@ -30,6 +30,7 @@ export default function Home() {
   ]);
   const [step, setStep] = useState("main_text");
   const [mainText, setMainText] = useState("");
+  const [originalQuestion, setOriginalQuestion] = useState("");
   const [textInput, setTextInput] = useState("");
   const [dateInput, setDateInput] = useState(todayStr());
   const [analysis, setAnalysis] = useState(null);
@@ -191,6 +192,7 @@ export default function Home() {
       .join("");
     const combined = value + referenceBlock;
     setMainText(combined);
+    setOriginalQuestion(value);
     const fileNames = doneFiles.map((f) => `📎 ${f.name}`).join("\n");
     pushUser(
       (value.length > 80 ? value.slice(0, 80) + "…" : value) + (fileNames ? `\n${fileNames}` : "")
@@ -302,6 +304,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: mainText,
+          originalQuestion,
           department: answers.department,
           dateStr: answers.dateStr,
           audience: answers.audience,
@@ -339,6 +342,7 @@ export default function Home() {
     setMessages([{ id: nextId(), role: "bot", content: "資料に入れたい内容を教えてください。箇条書きでも文章でも構いません。" }]);
     setStep("main_text");
     setMainText("");
+    setOriginalQuestion("");
     setTextInput("");
     setAnalysis(null);
     setAnswers({

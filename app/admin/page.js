@@ -188,7 +188,9 @@ function UsersPanel() {
           <tbody>
             {users.map((u) => (
               <tr key={u.id}>
-                <td>{u.email}</td>
+                <td>
+                  <a href={`/admin/users/${u.id}`} className="admin-user-link">{u.email}</a>
+                </td>
                 <td>
                   <select
                     key={`dept-${u.id}-${departments.length}`}
