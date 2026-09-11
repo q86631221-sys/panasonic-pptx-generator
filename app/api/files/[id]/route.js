@@ -1,5 +1,5 @@
-import { sql, ensureSchema } from "../../../../../lib/db.js";
-import { getSessionFromRequest } from "../../../../../lib/auth.js";
+import { sql, ensureSchema } from "../../../../lib/db.js";
+import { getSessionFromRequest } from "../../../../lib/auth.js";
 
 export const runtime = "nodejs";
 
@@ -11,8 +11,8 @@ function buildContentDisposition(filenameBase) {
 
 export async function GET(req, { params }) {
   const session = await getSessionFromRequest(req);
-  if (!session || session.role !== "admin") {
-    return new Response(JSON.stringify({ error: "権限がありません。" }), { status: 403 });
+  if (!session) {
+    return new Response(JSON.stringify({ error: "認証が必要です。" }), { status: 401 });
   }
 
   await ensureSchema();
@@ -20,14 +20,18 @@ export async function GET(req, { params }) {
   const fileId = Number(id);
 
   const { rows } = await sql`
-    SELECT title, encode(file_data, 'hex') AS file_hex
+    SELECT title, user_id, encode(file_data, 'hex') AS file_hex
     FROM generated_files WHERE id = ${fileId}
   `;
   if (!rows.length) {
     return new Response(JSON.stringify({ error: "ファイルが見つかりません。" }), { status: 404 });
   }
 
-  const { title, file_hex } = rows[0];
+  const { title, user_id, file_hex } = rows[0];
+  if (user_id !== session.userId && session.role !== "admin") {
+    return new Response(JSON.stringify({ error: "権限がありません。" }), { status: 403 });
+  }
+
   const buffer = Buffer.from(file_hex, "hex");
 
   return new Response(buffer, {

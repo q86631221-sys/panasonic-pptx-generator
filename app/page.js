@@ -320,10 +320,19 @@ export default function Home() {
         throw new Error(errJson.error || `生成に失敗しました (${res.status})`);
       }
       const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") || "";
+      let filename = "generated.pptx";
+      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      if (utf8Match) {
+        filename = decodeURIComponent(utf8Match[1]);
+      } else {
+        const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
+        if (plainMatch) filename = plainMatch[1];
+      }
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "generated.pptx";
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -377,6 +386,7 @@ export default function Home() {
         </span>
         <div className="userbar-actions">
           {me && me.role === "admin" && <a href="/admin">管理画面</a>}
+          <a href="/history">マイ履歴</a>
           <a href="/account">パスワード変更</a>
           <button type="button" className="userbar-logout" onClick={handleLogout}>
             ログアウト
