@@ -17,16 +17,25 @@ export default function HistoryPage() {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [month, setMonth] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch("/api/files");
+        const params = new URLSearchParams();
+        if (month) params.set("month", month);
+        params.set("page", String(page));
+        const res = await fetch(`/api/files?${params.toString()}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         setFiles(data.files);
+        setTotalPages(data.totalPages);
+        setTotal(data.total);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -34,7 +43,12 @@ export default function HistoryPage() {
       }
     }
     load();
-  }, []);
+  }, [month, page]);
+
+  function handleMonthChange(value) {
+    setMonth(value);
+    setPage(1);
+  }
 
   return (
     <div className="page admin-page">
@@ -45,24 +59,51 @@ export default function HistoryPage() {
       {error && <div className="error">{error}</div>}
 
       <div className="admin-panel">
+        <div className="admin-form-row">
+          <label>対象月：</label>
+          <input type="month" value={month} onChange={(e) => handleMonthChange(e.target.value)} />
+          {month && (
+            <button type="button" className="admin-btn-secondary" onClick={() => handleMonthChange("")}>
+              全期間に戻す
+            </button>
+          )}
+          {total > 0 && <span className="file-history-count">全{total}件</span>}
+        </div>
+
         {loading ? (
           <p>読み込み中…</p>
         ) : files.length === 0 ? (
-          <p>まだ資料の生成履歴はありません。</p>
+          <p>該当する資料はありません。</p>
         ) : (
-          <div className="file-history-list">
-            {files.map((f) => (
-              <div key={f.id} className="file-history-item">
-                <a href={`/api/files/${f.id}`} className="file-history-title">
-                  📄 {f.title}.pptx
-                </a>
-                <div className="file-history-meta">
-                  {formatDate(f.created_at)}　・　{formatSize(f.file_size)}
+          <>
+            <div className="file-history-list">
+              {files.map((f) => (
+                <div key={f.id} className="file-history-item">
+                  <a href={`/api/files/${f.id}`} className="file-history-title">
+                    📄 {f.title}.pptx
+                  </a>
+                  <div className="file-history-meta">
+                    {formatDate(f.created_at)}　・　{formatSize(f.file_size)}
+                  </div>
+                  <div className="file-history-summary">{f.summary || "（概要なし）"}</div>
                 </div>
-                <div className="file-history-summary">{f.summary || "（概要なし）"}</div>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                  ← 前へ
+                </button>
+                <span className="pagination-info">
+                  ページ {page} / {totalPages}
+                </span>
+                <button type="button" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                  次へ →
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
@@ -72,3 +113,4 @@ export default function HistoryPage() {
     </div>
   );
 }
+
