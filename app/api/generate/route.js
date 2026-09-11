@@ -4,6 +4,7 @@ import { buildSystemPrompt } from "../../../lib/prompt.js";
 import { normalizeStructured } from "../../../lib/normalize.js";
 import { getSessionFromRequest } from "../../../lib/auth.js";
 import { sql, ensureSchema } from "../../../lib/db.js";
+import { put } from "@vercel/blob";
 
 export const runtime = "nodejs";
 
@@ -76,10 +77,14 @@ async function structureContent({ text, audience, chartPreference, includeInsigh
 async function saveGeneratedFile(userId, title, summary, buffer) {
   try {
     await ensureSchema();
-    const hex = buffer.toString("hex");
+    const pathname = `pptx/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pptx`;
+    const blob = await put(pathname, buffer, {
+      access: "private",
+      contentType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    });
     await sql`
-      INSERT INTO generated_files (user_id, title, summary, file_data, file_size)
-      VALUES (${userId}, ${title}, ${summary}, decode(${hex}, 'hex'), ${buffer.length})
+      INSERT INTO generated_files (user_id, title, summary, blob_pathname, file_size)
+      VALUES (${userId}, ${title}, ${summary}, ${blob.pathname}, ${buffer.length})
     `;
   } catch (err) {
     // 履歴保存の失敗で本体機能（ダウンロード）を止めない

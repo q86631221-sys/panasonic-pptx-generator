@@ -1,5 +1,6 @@
 import { sql, ensureSchema } from "../../../../lib/db.js";
 import { getSessionFromRequest } from "../../../../lib/auth.js";
+import { get } from "@vercel/blob";
 
 export const runtime = "nodejs";
 
@@ -20,25 +21,30 @@ export async function GET(req, { params }) {
   const fileId = Number(id);
 
   const { rows } = await sql`
-    SELECT title, user_id, encode(file_data, 'hex') AS file_hex
+    SELECT title, user_id, blob_pathname
     FROM generated_files WHERE id = ${fileId}
   `;
-  if (!rows.length) {
-    return new Response(JSON.stringify({ error: "ファイルが見つかりません。" }), { status: 404 });
+  if (!rows.length || !rows[0].blob_pathname) {
+    return new Response(JSON.stringify({ error: "ファイルが見つかりません（保存前の旧データの可能性があります）。" }), { status: 404 });
   }
 
-  const { title, user_id, file_hex } = rows[0];
+  const { title, user_id, blob_pathname } = rows[0];
   if (user_id !== session.userId && session.role !== "admin") {
     return new Response(JSON.stringify({ error: "権限がありません。" }), { status: 403 });
   }
 
-  const buffer = Buffer.from(file_hex, "hex");
+  const result = await get(blob_pathname, { access: "private" });
+  if (!result || result.statusCode !== 200) {
+    return new Response(JSON.stringify({ error: "ファイルの取得に失敗しました。" }), { status: 404 });
+  }
 
-  return new Response(buffer, {
+  return new Response(result.stream, {
     status: 200,
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       "Content-Disposition": buildContentDisposition(title || "資料"),
+      "X-Content-Type-Options": "nosniff",
     },
   });
 }
+
